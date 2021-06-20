@@ -41,17 +41,9 @@ int main(int argc, char **argv)
 		touch = true;
 		ft = &filetypes[ft_idx];
 	}
-	while((in_len = read(0, in, sizeof(in))) > 0) {
-		in[in_len] = '\0';
-		in_len++;
-		char *t = strtok(in, "\n");
-		while(t != NULL) {
-			if(array_push(&arr, ft, t, in_len) != 0) {
-				fprintf(stderr, "could not add item to array");
-				exit(-1);
-			}
-			t = strtok(NULL, "\n");
-		}
+	if (read_stdin(&arr, ft) != 0) {
+		fprintf(stderr, "could not read stdin");
+		exit(-1);
 	}
 	for(int i = 0; i < arr.index; i++) {
 		line *l = (line*)malloc(sizeof(line));
