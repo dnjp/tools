@@ -14,13 +14,13 @@
 int get_filename(int argc, char **argv, char *filename)
 {
 	int opt;
-	while((opt = getopt(argc, argv, ":f:")) != -1) { 
-		switch(opt) { 
-			case 'f': 
-				strcpy(filename, optarg); 
+	while((opt = getopt(argc, argv, ":f:")) != -1) {
+		switch(opt) {
+			case 'f':
+				strcpy(filename, optarg);
 				return 0;
-		} 
-	} 
+		}
+	}
 	return -1;
 }
 
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	filename = (char*)malloc(MAXBUF*sizeof(char));
 	ft_len = sizeof(filetypes)/sizeof(struct filetype);
 	touch = false;
-	
+
 	if(get_filename(argc, argv, filename) < 0 || filename == NULL) {
 		fprintf(stderr, "filename must be provided with -f flag");
 		exit(-1);
@@ -91,7 +91,10 @@ int main(int argc, char **argv)
 				break;
 			}
 		}
-		printf("%s\n", l->content);
+		if(arr.index > 1 && i == arr.index-1)
+			printf("%s", l->content);
+		else
+			printf("%s\n", l->content);
 		free(l);
 	}
 	array_destroy(&arr);
