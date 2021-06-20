@@ -1,6 +1,6 @@
 include config.mk
 
-SRC = array.c ft.c line.c
+SRC = array.c ft.c line.c runtime.c
 OBJ = ${SRC:.c=.o}
 CFLAGS = ""
 
@@ -15,7 +15,7 @@ options:
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h ft.h array.h config.mk
+${OBJ}: config.h ft.h array.h runtime.h config.mk
 
 config.h:
 	cp config.def.h $@

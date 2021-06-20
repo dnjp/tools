@@ -8,21 +8,8 @@
 #include "line.h"
 #include "config.h"
 #include "ft.h"
+#include "runtime.h"
 
-#define MAXBUF 1024
-
-int get_filename(int argc, char **argv, char *filename)
-{
-	int opt;
-	while((opt = getopt(argc, argv, ":f:")) != -1) {
-		switch(opt) {
-			case 'f':
-				strcpy(filename, optarg);
-				return 0;
-		}
-	}
-	return -1;
-}
 
 int main(int argc, char **argv)
 {
