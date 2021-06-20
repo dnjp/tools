@@ -106,7 +106,7 @@ int line_uncomment(line* l, struct filetype *ft)
 		end = l->ecom - scomlen;
 		first = (char*)malloc((end-start)+1*sizeof(char));
 		str_sub(l->content, first, start, end);
-		
+
 		/* after the comment */
 		int start = l->ecom + ecomlen;
 		int end = l->len;
@@ -115,6 +115,23 @@ int line_uncomment(line* l, struct filetype *ft)
 
 		/* put string together */
 		sprintf(l->content, "%s%s", first, second);
+	}
+	return 0;
+}
+
+int line_indent(line* l, struct filetype *ft)
+{
+	char *nline;
+	char *first;
+	if(ft->use_tabs) {
+		nline = (char*)malloc(l->len+1*sizeof(char));
+		sprintf(nline, "\t%s", l->content);
+		l->content = nline;
+	} else if(ft->tab_width > 0) {
+		first = (char*)malloc(ft->tab_width*sizeof(char));
+		for(int i = 0; i < ft->tab_width; i++)
+			first[i] = ' ';
+		sprintf(l->content, "%s%s", first, l->content);
 	}
 	return 0;
 }
@@ -137,7 +154,7 @@ int str_find(const char* str, const char* sub, int start, int len)
 int str_sub(const char* from, char* to, int start, int end)
 {
 	int j = 0;
-	for(int i = start; i < end; i++, j++) 
+	for(int i = start; i < end; i++, j++)
 		to[j] = from[i];
 	to[j] = '\0';
 	return 0;

@@ -1,10 +1,10 @@
 include config.mk
 
-SRC = com.c array.c ft.c line.c
+SRC = array.c ft.c line.c
 OBJ = ${SRC:.c=.o}
-CFLAGS = "-g"
+CFLAGS = ""
 
-all: options com
+all: options com ind
 
 options:
 	@echo com build options:
@@ -21,10 +21,13 @@ config.h:
 	cp config.def.h $@
 
 com: ${OBJ}
-	${CC} -o $@ ${OBJ} ${LDFLAGS}
+	${CC} -o $@ com.c ${OBJ} ${LDFLAGS}
+
+ind: ${OBJ}
+	${CC} -o $@ ind.c ${OBJ} ${LDFLAGS}
 
 clean:
-	rm -f com ${OBJ} 
+	rm -f com ind com.o ind.o ${OBJ}
 
 install: all
 	mkdir -p ${BINDIR}
