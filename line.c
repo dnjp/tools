@@ -136,6 +136,18 @@ int line_indent(line* l, struct filetype *ft)
 	return 0;
 }
 
+int line_unindent(line* l, struct filetype *ft)
+{
+	char *nline;
+	nline = (char*)malloc((l->len - l->fch)*sizeof(char));
+	if(ft->use_tabs && l->content[0] == '\t')
+		str_sub(l->content, nline, 1, l->len);
+	else if(l->content[0] == ' ')
+		str_sub(l->content, nline, ft->tab_width, l->len);
+	l->content = nline;
+	return 0;
+}
+
 int str_find(const char* str, const char* sub, int start, int len)
 {
 	int idx = -1;

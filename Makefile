@@ -4,7 +4,7 @@ SRC = array.c ft.c line.c
 OBJ = ${SRC:.c=.o}
 CFLAGS = ""
 
-all: options com ind
+all: options com ind ui
 
 options:
 	@echo com build options:
@@ -26,8 +26,11 @@ com: ${OBJ}
 ind: ${OBJ}
 	${CC} -o $@ ind.c ${OBJ} ${LDFLAGS}
 
+ui: ${OBJ}
+	${CC} -o $@ ui.c ${OBJ} ${LDFLAGS}
+
 clean:
-	rm -f com ind com.o ind.o ${OBJ}
+	rm -f com ind com.o ind.o ui.o ${OBJ}
 
 install: all
 	mkdir -p ${BINDIR}
