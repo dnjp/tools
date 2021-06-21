@@ -1,0 +1,111 @@
+#!/usr/bin/env rc
+
+fn filetype{
+	switch($%){
+	case *.java *.js *.ts
+		comstart='// '
+		usetabs=0
+		tabwidth=2
+	case *.go
+		comstart='// '
+		usetabs=1
+	case *.tf *.yaml *.yml
+		comstart='# '
+		usetabs=0
+		tabwidth=2
+	case *
+		comstart='# '
+		usetabs=1
+	}
+}
+
+fn usage {
+  echo `{basename $0}^' [indent|unindent|comment]'
+}
+
+fn die{
+	>[1=2] echo $0: $*
+	exit $"*
+}
+
+fn fill{
+	if (~ $#% 0)
+		die 'this only works in acme'
+
+	# capture stdin in $input, using a newline as the separater
+	ifs='
+'
+	input=`{cat /dev/stdin}
+}
+
+fn flush{
+	act=$1
+	com=$2
+	tab=$2
+	j=1
+	for(i in $input) {
+		switch($act){
+		case UNCOMMENT
+			out=`{echo $i | sed 's/'^$com^'//'}
+		case COMMENT
+			out=`{echo $i | sed 's/[^ \t]/'^$com^'&/'}
+		case INDENT
+			out=`{echo $i | sed 's/^/'^$tab^'/'}
+		case UNINDENT
+			out=`{echo $i | sed 's/^'^$tab^'//'}
+		}
+		# don't print trailing newline if we are on last line
+		if(test $j -eq $#input && test $#input -gt 1)
+			printf %s `{echo $out}
+		if not
+			echo $out
+		j=`{echo $j+1 | bc}
+	}
+}
+
+fn newtab{
+	if(test $usetabs -eq 0) {
+		tab=(' ')
+		for(i in `{seq 2 $tabwidth}) {
+			tab=$tab^' '
+		}
+		echo -n $tab	
+	}
+	if not {
+		echo -n '	'
+	}
+}
+
+fn com{	
+	comlines=`{echo $input | grep $comstart | wc -l}
+	noncomlines=`{echo $input | grep -v $comstart | wc -l}
+
+	if(test $comlines -gt $noncomlines)
+		flush UNCOMMENT $comstart
+	if not
+		flush COMMENT $comstart
+}
+
+fn ind{
+	flush INDENT `{newtab}
+}
+
+fn ui{
+	flush UNINDENT `{newtab}
+}
+
+switch ($#*) {
+case 0
+	die `{usage}
+case *
+	switch ($1) {
+	case indent
+		fill; filetype; ind
+	case unindent
+		fill; filetype; ui
+	case comment
+		fill; filetype; com
+	case *
+		die `{usage}
+	}
+}
