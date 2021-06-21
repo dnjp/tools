@@ -34,8 +34,15 @@ clean:
 
 install: all
 	mkdir -p ${BINDIR}
+
 	cp -f com ${BINDIR}
 	chmod 755 ${BINDIR}/com
+
+	cp -f ind ${BINDIR}/a+
+	chmod 755 ${BINDIR}/a+
+
+	cp -f ui ${BINDIR}/a-
+	chmod 755 ${BINDIR}/a-
 
 uninstall:
 	rm -f ${BINDIR}/com
