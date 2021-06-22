@@ -13,13 +13,17 @@ fn filetype{
 		comstart='# '
 		usetabs=0
 		tabwidth=2
+	case *.c *.h
+		comstart='/\* '
+		comend=' \*/'
+		usetabs=1	
 	case *
 		comstart='# '
 		usetabs=1
 	}
 }
 
-fn usage {
+fn usage{
   echo `{basename $0}^' [indent|unindent|comment]'
 }
 
@@ -40,15 +44,22 @@ fn fill{
 
 fn flush{
 	act=$1
-	com=$2
+	comstart=$2
+	comend=$3
 	tab=$2
 	j=1
-	for(i in $input) {
+	for(i in $input){
 		switch($act){
 		case UNCOMMENT
-			out=`{echo $i | sed 's/'^$com^'//'}
+			out=`{echo $i | sed 's|'^$comstart^'||'}
+			if(! ~ $#comend 0){
+				out=`{echo $out | sed 's|'^$comend^'||'}
+			}
 		case COMMENT
-			out=`{echo $i | sed 's/[^ \t]/'^$com^'&/'}
+			out=`{echo $i | sed 's|[^ \t]|&'^$comstart^'|'}
+			if(! ~ $#comend 0){
+				out=`{echo $out | sed 's|$|'^$comend^'|'}
+			}
 		case INDENT
 			out=`{echo $i | sed 's/^/'^$tab^'/'}
 		case UNINDENT
@@ -64,26 +75,25 @@ fn flush{
 }
 
 fn newtab{
-	if(test $usetabs -eq 0) {
+	if(test $usetabs -eq 0){
 		tab=(' ')
-		for(i in `{seq 2 $tabwidth}) {
+		for(i in `{seq 2 $tabwidth}){
 			tab=$tab^' '
 		}
 		echo -n $tab	
 	}
-	if not {
+	if not{
 		echo -n '	'
 	}
 }
 
-fn com{	
+fn com{
 	comlines=`{echo $input | grep $comstart | wc -l}
 	noncomlines=`{echo $input | grep -v $comstart | wc -l}
-
 	if(test $comlines -gt $noncomlines)
-		flush UNCOMMENT $comstart
+		flush UNCOMMENT $comstart $comend
 	if not
-		flush COMMENT $comstart
+		flush COMMENT $comstart $comend
 }
 
 fn ind{
@@ -94,11 +104,11 @@ fn ui{
 	flush UNINDENT `{newtab}
 }
 
-switch ($#*) {
+switch ($#*){
 case 0
 	die `{usage}
 case *
-	switch ($1) {
+	switch ($1){
 	case indent
 		fill; filetype; ind
 	case unindent
