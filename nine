@@ -92,10 +92,10 @@ fn pipe{
 				# comment
 				if not{
 					if(! ~ $#comend 0)
-						out=`{echo $str | sed 's|[^ 	]|'^$comstart^'&|' \
+						out=`{echo $str | sed 's|^[ 	]*|&'^$comstart^'|' \
 							| sed 's|$|'^$comend^'|'}
 					if not
-						out=`{echo $str | sed 's|[^ \t]|&'^$comstart^'|'}
+						out=`{echo $str | sed 's|^[ 	]*|&'^$comstart^'|'}
 				}
 			case INDENT
 				out=`{echo $str | sed 's/^/'^`{newtab}^'/'}
