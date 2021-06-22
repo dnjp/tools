@@ -61,6 +61,7 @@ fn pipe{
 		in=($in $l $nl)
 	}
 	
+	startnl=0
 	target=`{ echo $#in-1 | bc }
 	for(i in `{ seq 1 $#in }) {
 
@@ -69,13 +70,17 @@ fn pipe{
 
 		switch($str){
 		case $nl
+			switch($i){
+			case 1
+				startnl=1
+				echo
+			}
 		case *
-			out=()
+			# echo -n executing
 			switch($action){
 			case COMMENT
 				comlines=`{echo $in | grep $comstart | wc -l}
 				noncomlines=`{echo $in | grep -v $comstart | wc -l}
-
 				# uncomment
 				if(~ $comlines $noncomlines || test $comlines -gt $noncomlines){
 					if(! ~ $#comend 0)
@@ -98,16 +103,14 @@ fn pipe{
 				out=`{echo $str | sed 's/^'^`{newtab}^'//'}
 			}
 
-			# handle trailing newlines proplery
-			if(~ $i $target && ! ~ $#in 2){
-				# echo $#in
-				echo $out \
-					| tr -d $nl
+			# handle trailing newlines properly
+			if(~ $i $target && ! ~ $#in 2 && ! ~ $startnl 1){
+				echo -n $out
 			}
 			if not{
-				# echo 'not trimming' 2
 				echo $out
-			}				
+			}
+				
 		}
 	}
 
