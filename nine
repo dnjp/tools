@@ -32,48 +32,6 @@ fn die{
 	exit $"*
 }
 
-fn fill{
-	if (~ $#% 0)
-		die 'this only works in acme'
-
-	# capture stdin in $input, using a newline as the separater
-	ifs='
-'
-	input=`{cat /dev/stdin}
-}
-
-fn flush{
-	act=$1
-	comstart=$2
-	comend=$3
-	tab=$2
-	j=1
-	for(i in $input){
-		switch($act){
-		case UNCOMMENT
-			out=`{echo $i | sed 's|'^$comstart^'||'}
-			if(! ~ $#comend 0){
-				out=`{echo $out | sed 's|'^$comend^'||'}
-			}
-		case COMMENT
-			out=`{echo $i | sed 's|[^ \t]|&'^$comstart^'|'}
-			if(! ~ $#comend 0){
-				out=`{echo $out | sed 's|$|'^$comend^'|'}
-			}
-		case INDENT
-			out=`{echo $i | sed 's/^/'^$tab^'/'}
-		case UNINDENT
-			out=`{echo $i | sed 's/^'^$tab^'//'}
-		}
-		# don't print trailing newline if we are on last line
-		if(test $j -eq $#input && test $#input -gt 1)
-			printf %s `{echo $out}
-		if not
-			echo $out
-		j=`{echo $j+1 | bc}
-	}
-}
-
 fn newtab{
 	if(test $usetabs -eq 0){
 		tab=(' ')
@@ -87,21 +45,72 @@ fn newtab{
 	}
 }
 
-fn com{
-	comlines=`{echo $input | grep $comstart | wc -l}
-	noncomlines=`{echo $input | grep -v $comstart | wc -l}
-	if(test $comlines -gt $noncomlines)
-		flush UNCOMMENT $comstart $comend
-	if not
-		flush COMMENT $comstart $comend
-}
+fn pipe{
+	action=$1
+	if (~ $#% 0)
+		die 'this only works in acme'
 
-fn ind{
-	flush INDENT `{newtab}
-}
+	# capture stdin in $input, using a newline as the separater
+	nl='
+'
+	ifs=$nl
+	
+	# get stdin line by line
+	in=()
+	while(l=`{read}){
+		in=($in $l $nl)
+	}
+	
+	target=`{ echo $#in-1 | bc }
+	for(i in `{ seq 1 $#in }) {
 
-fn ui{
-	flush UNINDENT `{newtab}
+		l=$in($i)
+		str=$"l
+
+		switch($str){
+		case $nl
+		case *
+			out=()
+			switch($action){
+			case COMMENT
+				comlines=`{echo $in | grep $comstart | wc -l}
+				noncomlines=`{echo $in | grep -v $comstart | wc -l}
+
+				# uncomment
+				if(~ $comlines $noncomlines || test $comlines -gt $noncomlines){
+					if(! ~ $#comend 0)
+						out=`{echo $str | sed 's|'^$comstart^'||' \
+							| sed 's|'^$comend^'||'}
+					if not
+						out=`{echo $str | sed 's|'^$comstart^'||'}
+				}
+				# comment
+				if not{
+					if(! ~ $#comend 0)
+						out=`{echo $str | sed 's|[^ 	]|'^$comstart^'&|' \
+							| sed 's|$|'^$comend^'|'}
+					if not
+						out=`{echo $str | sed 's|[^ \t]|&'^$comstart^'|'}
+				}
+			case INDENT
+				out=`{echo $str | sed 's/^/'^`{newtab}^'/'}
+			case UNINDENT
+				out=`{echo $str | sed 's/^'^`{newtab}^'//'}
+			}
+
+			# handle trailing newlines proplery
+			if(~ $i $target && ! ~ $#in 2){
+				# echo $#in
+				echo $out \
+					| tr -d $nl
+			}
+			if not{
+				# echo 'not trimming' 2
+				echo $out
+			}				
+		}
+	}
+
 }
 
 switch ($#*){
@@ -110,11 +119,11 @@ case 0
 case *
 	switch ($1){
 	case indent
-		fill; filetype; ind
+		filetype; pipe INDENT
 	case unindent
-		fill; filetype; ui
+		filetype; pipe UNINDENT
 	case comment
-		fill; filetype; com
+		filetype; pipe COMMENT
 	case *
 		die `{usage}
 	}
