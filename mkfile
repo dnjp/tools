@@ -1,6 +1,9 @@
 installdir=${installdir}
 
 install:
-	cp ./* $installdir
+	cp ./nine $installdir
+	cp ./a+ $installdir
+	cp ./a- $installdir
+	cp ./com $installdir
 
 
