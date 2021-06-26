@@ -1,5 +1,16 @@
 #!/usr/bin/env rc
 
+pfont=$lfont
+tfont=$font
+
+###########################
+#         Options
+#  0 = false
+#  1 = true
+#
+
+DYNAMIC_FONT=0
+
 fn filetype{
 	switch($%){
 	case *.java *.js *.ts
@@ -16,20 +27,49 @@ fn filetype{
 	case *.c *.h
 		comstart='/\* '
 		comend=' \*/'
-		usetabs=1	
+		usetabs=1
 	case *
 		comstart='# '
 		usetabs=1
 	}
 }
 
+###########################
+
 fn usage{
-  echo `{basename $0}^' [indent|unindent|comment]'
+  echo `{basename $0}^' [indent|unindent|comment|listen]'
+}
+
+fn lisusage{
+	echo
+	echo 'export $font and $lfont in your environment'
+	echo
+	echo '  $font=fixed width'
+	echo '  $lfont=variable width'
+	echo
+	echo 'usage: '^`{basename $0}^' <log file>'
+	echo
 }
 
 fn die{
 	>[1=2] echo $0: $*
 	exit $"*
+}
+
+fn writetag{
+	len=`{echo $1 | wc -c}
+	selbegin=`{echo $tag | wc -c}
+	selend=`{echo $selbegin+$len | bc -l}
+	echo $1 | 9p write acme/$id/tag
+	echo 'Ex'^$selbegin^' '^$selend | 9p write acme/$id/event
+}
+
+fn cleartag{
+	echo 'cleartag' | 9p write acme/$id/ctl
+}
+
+fn writedefault{
+	writetag ' Look  Send'
 }
 
 fn newtab{
@@ -38,7 +78,7 @@ fn newtab{
 		for(i in `{seq 2 $tabwidth}){
 			tab=$tab^' '
 		}
-		echo -n $tab	
+		echo -n $tab
 	}
 	if not{
 		echo -n '	'
@@ -54,13 +94,13 @@ fn pipe{
 	nl='
 '
 	ifs=$nl
-	
+
 	# get stdin line by line
 	in=()
 	while(l=`{read}){
 		in=($in $l $nl)
 	}
-	
+
 	startnl=0
 	target=`{ echo $#in-1 | bc }
 	for(i in `{ seq 1 $#in }) {
@@ -110,23 +150,65 @@ fn pipe{
 			if not{
 				echo $out
 			}
-				
+
 		}
 	}
 
+}
+
+fn listen{
+	logfile=$1
+	if(~ $#logfile 0 || ~ $#pfont 0 || $#tfont 0){
+		lisusage
+		die 'logfile, font, or lfont is not available in the environment'
+	}
+
+	touch $logfile
+	echo 'listening...' >> $logfile
+	echo primary font: $pfont >> $logfile
+	echo terminal font: $tfont >> $logfile
+	echo dynamic font enabled? $DYNAMIC_FONT
+
+	9p read acme/log | while(event=`{read}){
+		id=`{echo $event | awk '{print $1}'}
+		action=`{echo $event | awk '{print $2}'}
+		file=`{echo $event | awk '{print $3}'}
+		switch($action){
+		case new
+			if(! ~ $DYNAMIC_FONT 1)
+				continue
+
+			tag=`{9p read acme/$id/tag}
+			# set fixed with font for terminal
+			if(! ~ $#tag 0 && ~ $tag */-*){
+				writetag 'Font '^$tfont
+				cleartag
+				writedefault
+			}
+			# set variable width font elsewhere
+			if not{
+				writetag 'Font '^$pfont
+				cleartag
+				writedefault
+			}
+		}
+	}
 }
 
 switch ($#*){
 case 0
 	die `{usage}
 case *
+	filetype
 	switch ($1){
 	case indent
-		filetype; pipe INDENT
+		pipe INDENT
 	case unindent
-		filetype; pipe UNINDENT
+		pipe UNINDENT
 	case comment
-		filetype; pipe COMMENT
+		pipe COMMENT
+	case listen
+		listen $2
 	case *
 		die `{usage}
 	}
