@@ -15,22 +15,20 @@ fn filetype{
 	switch($%){
 	case *.java *.js *.ts
 		comstart='// '
-		usetabs=0
-		tabwidth=2
+		tab='  '
 	case *.go
 		comstart='// '
-		usetabs=1
+		tab='	'
 	case *.tf *.yaml *.yml
 		comstart='# '
-		usetabs=0
-		tabwidth=2
+		tab='  '
 	case *.c *.h
 		comstart='/\* '
 		comend=' \*/'
-		usetabs=1
+		tab='	'
 	case *
 		comstart='# '
-		usetabs=1
+		tab='	'
 	}
 }
 
@@ -72,18 +70,6 @@ fn writedefault{
 	writetag ' Look  Send'
 }
 
-fn newtab{
-	if(~ $#usetabs 0){
-		tab=(' ')
-		for(i in `{seq 2 $tabwidth}){
-			tab=$tab^' '
-		}
-	}
-	if not{
-		tab='	'
-	}
-}
-
 fn chomp{
 	# trim trailing newline if the input did not have one
 	hasnl=`{tail -c 1 $f}
@@ -122,17 +108,15 @@ fn pipe{
 			if not{
 				# comment
 				if(! ~ $#comend 0){
-					sed 's|^[ 	]*|&'^$comstart^'|';
+					sed 's|^[ 	]+|&'^$comstart^'|';
 					sed 's|$|'^$comend^'|';
 				}
 				if not
-					sed 's|^[ 	]*|&'^$comstart^'|';
+					sed 's|^[ 	]+|&'^$comstart^'|';
 			}
 		case INDENT
-			newtab
-			sed 's/^/'^$tab^'/';
+			sed 's/^.+/'^$tab^'&/';
 		case UNINDENT
-			newtab
 			sed 's/^'^$tab^'//';
 		}
 	} | chomp
