@@ -5,20 +5,20 @@ tfont=$font
 
 ###########################
 #         Options
-#  0 = false
-#  1 = true
-#
 
+#  0 = false, 1 = true
 DYNAMIC_FONT=0
+MENU='|a-  |a+  |com'
 
 fn filetype{
-	switch($%){
+	switch($filename){
 	case *.java *.js *.ts
 		comstart='// '
 		tab='  '
 	case *.go
 		comstart='// '
 		tab='	'
+		savehooks=('gofmt $NAME')
 	case *.tf *.yaml *.yml
 		comstart='# '
 		tab='  '
@@ -52,22 +52,6 @@ fn lisusage{
 fn die{
 	>[1=2] echo $0: $*
 	exit $"*
-}
-
-fn writetag{
-	len=`{echo $1 | wc -c}
-	selbegin=`{echo $tag | wc -c}
-	selend=`{echo $selbegin+$len | bc -l}
-	echo $1 | 9p write acme/$id/tag
-	echo 'Ex'^$selbegin^' '^$selend | 9p write acme/$id/event
-}
-
-fn cleartag{
-	echo 'cleartag' | 9p write acme/$id/ctl
-}
-
-fn writedefault{
-	writetag ' Look  Send'
 }
 
 fn chomp{
@@ -111,6 +95,7 @@ fn pipe{
 					sed 's|^[ 	]+|&'^$comstart^'|';
 					sed 's|$|'^$comend^'|';
 				}
+				# TODO: fix ending comment within delimeters { }
 				if not
 					sed 's|^[ 	]+|&'^$comstart^'|';
 			}
@@ -123,40 +108,95 @@ fn pipe{
 	rm $f
 }
 
+fn clearstate{
+	filename=''
+	savehooks=()
+	comstart=''
+	comend=''
+	tab=''
+	cmd=''
+	state=clean
+}
+
+fn execintag{
+	gettag
+	len=`{echo $1 | wc -c}
+	selbegin=`{echo $tag | wc -c}
+	selend=`{echo $selbegin+$len | bc -l}
+	echo $1 | 9p write acme/$id/tag
+	echo 'Mx'^$selbegin^' '^$selend | 9p write acme/$id/event
+	gettag
+}
+
+fn cleartag{
+	echo -n cleartag | 9p write acme/$id/ctl
+	gettag
+}
+
+fn gettag{
+	tag=`{9p read acme/$id/tag}
+}
+
 fn listen{
+
 	logfile=$1
-	if(~ $#logfile 0 || ~ $#pfont 0 || $#tfont 0){
+	if(~ $#logfile 0)
+		logfile=/dev/stdout
+	if not
+		touch $logfile
+
+	if(~ $#pfont 0 || ~ $#tfont 0){
 		lisusage
 		die 'logfile, font, or lfont is not available in the environment'
 	}
 
-	touch $logfile
-	echo 'listening...' >> $logfile
+	echo log file: $logfile
 	echo primary font: $pfont >> $logfile
 	echo terminal font: $tfont >> $logfile
-	echo dynamic font enabled? $DYNAMIC_FONT
+	echo dynamic font enabled: $DYNAMIC_FONT >> $logfile
 
 	9p read acme/log | while(event=`{read}){
+
 		id=`{echo $event | awk '{print $1}'}
 		action=`{echo $event | awk '{print $2}'}
 		file=`{echo $event | awk '{print $3}'}
+
 		switch($action){
-		case new
-			if(~ $DYNAMIC_FONT 1){
-				tag=`{9p read acme/$id/tag}
-				# set fixed with font for terminal
-				if(! ~ $#tag 0 && ~ $tag */-*){
-					writetag 'Font '^$tfont
-					cleartag
-					writedefault
+		case put
+			filename=$file
+			filetype
+			if(! ~ $#savehooks 0 && ! ~ $state dirty){
+				filename=$file
+				filetype
+				for(hook in $savehooks){
+					cmd=`{echo $hook | sed 's|\$NAME|'^$filename^'|g'}
+					echo -n , | 9p write acme/$id/addr
+					echo 'dot=addr' | 9p rdwr acme/$id/ctl
+					$cmd | 9p write acme/$id/data
 				}
-				# set variable width font elsewhere
-				if not{
-					writetag 'Font '^$pfont
+				echo -n 'put' | 9p write acme/$id/ctl
+				state=dirty
+			}
+			if not
+				clearstate
+
+		case new
+			originaltag=' '^`{echo $tag | sed 's/.*\|//'}
+			if(~ $DYNAMIC_FONT 1){
+				switch($tag){
+				# terminal
+				case */-*
+					execintag 'Font '^$tfont
 					cleartag
-					writedefault
+				case *
+					execintag 'Font '^$pfont
+					cleartag
 				}
 			}
+			echo $originaltag | 9p write acme/$id/tag
+			if(! ~ $tag *+Errors* && ! ~ $tag */-*)
+				echo -n $MENU | 9p write acme/$id/tag
+
 		}
 	}
 }
@@ -165,17 +205,22 @@ switch ($#*){
 case 0
 	die `{usage}
 case *
-	filetype
-	switch ($1){
-	case indent
-		pipe INDENT
-	case unindent
-		pipe UNINDENT
-	case comment
-		pipe COMMENT
-	case listen
+	if(~ $1 listen)
 		listen $2
-	case *
-		die `{usage}
+	if not{
+		filename=$%
+		filetype
+		switch ($1){
+		case indent
+			pipe INDENT
+		case unindent
+			pipe UNINDENT
+		case comment
+			pipe COMMENT
+		case listen
+			listen $2
+		case *
+			die `{usage}
+		}
 	}
 }
