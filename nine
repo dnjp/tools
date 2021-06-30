@@ -1,13 +1,13 @@
 #!/usr/bin/env rc
 
-pfont=$lfont
-tfont=$font
+pfont=/mnt/font/LucidaGrande/14a/font
+tfont=/mnt/font/Monaco/13a/font
 
 ###########################
 #         Options
 
 #  0 = false, 1 = true
-DYNAMIC_FONT=0
+DYNAMIC_FONT=1
 MENU='|a-  |a+  |com'
 
 fn filetype{
@@ -123,18 +123,18 @@ fn execintag{
 	len=`{echo $1 | wc -c}
 	selbegin=`{echo $tag | wc -c}
 	selend=`{echo $selbegin+$len | bc -l}
-	echo $1 | 9p write acme/$id/tag
-	echo 'Mx'^$selbegin^' '^$selend | 9p write acme/$id/event
+	echo $1 | 9p write acme/$winid/tag
+	echo 'Mx'^$selbegin^' '^$selend | 9p write acme/$winid/event
 	gettag
 }
 
 fn cleartag{
-	echo -n cleartag | 9p write acme/$id/ctl
+	echo -n cleartag | 9p write acme/$winid/ctl
 	gettag
 }
 
 fn gettag{
-	tag=`{9p read acme/$id/tag}
+	tag=`{9p read acme/$winid/tag}
 }
 
 fn listen{
@@ -157,7 +157,7 @@ fn listen{
 
 	9p read acme/log | while(event=`{read}){
 
-		id=`{echo $event | awk '{print $1}'}
+		winid=`{echo $event | awk '{print $1}'}
 		action=`{echo $event | awk '{print $2}'}
 		file=`{echo $event | awk '{print $3}'}
 
@@ -170,32 +170,35 @@ fn listen{
 				filetype
 				for(hook in $savehooks){
 					cmd=`{echo $hook | sed 's|\$NAME|'^$filename^'|g'}
-					echo -n , | 9p write acme/$id/addr
-					echo 'dot=addr' | 9p rdwr acme/$id/ctl
-					$cmd | 9p write acme/$id/data
+					echo -n , | 9p write acme/$winid/addr
+					echo 'dot=addr' | 9p rdwr acme/$winid/ctl
+					$cmd | 9p write acme/$winid/data
 				}
-				echo -n 'put' | 9p write acme/$id/ctl
+				echo -n 'put' | 9p write acme/$winid/ctl
 				state=dirty
 			}
 			if not
 				clearstate
 
 		case new
-			originaltag=' '^`{echo $tag | sed 's/.*\|//'}
+			tag=`{9p read acme/$winid/tag}
+			originaltag=`{echo $tag | sed 's/.*\|//'}
 			if(~ $DYNAMIC_FONT 1){
 				switch($tag){
-				# terminal
 				case */-*
+					# terminal
 					execintag 'Font '^$tfont
 					cleartag
 				case *
+					# normal window
 					execintag 'Font '^$pfont
 					cleartag
 				}
 			}
-			echo $originaltag | 9p write acme/$id/tag
+			if(! ~ $#originaltag 0)
+				echo ' '^$originaltag | 9p write acme/$winid/tag
 			if(! ~ $tag *+Errors* && ! ~ $tag */-*)
-				echo -n $MENU | 9p write acme/$id/tag
+				echo -n $MENU | 9p write acme/$winid/tag
 
 		}
 	}
