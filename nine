@@ -1,13 +1,17 @@
 #!/usr/bin/env rc
 
-pfont=/mnt/font/LucidaGrande/14a/font
-tfont=/mnt/font/Monaco/13a/font
-
 ###########################
 #         Options
 
-#  0 = false, 1 = true
+# Sets font to proportional width font for text buffers and
+# a fixed width font for win/terminal buffers
 DYNAMIC_FONT=1
+
+# Edwood has some features Acme does not. Set to 1 if you
+# are using Edwood.
+HAS_EDWOOD=1
+
+# These menu items will be set in the tag on every new window
 MENU='|a-  |a+  |com'
 
 fn filetype{
@@ -15,6 +19,8 @@ fn filetype{
 	case *.java *.js *.ts
 		comstart='// '
 		tab='  '
+		tabwidth=2
+		tabexpand=1
 	case *.go
 		comstart='// '
 		tab='	'
@@ -22,6 +28,8 @@ fn filetype{
 	case *.tf *.yaml *.yml
 		comstart='# '
 		tab='  '
+		tabwidth=2
+		tabexpand=1
 	case *.c *.h
 		comstart='/\* '
 		comend=' \*/'
@@ -36,17 +44,6 @@ fn filetype{
 
 fn usage{
   echo `{basename $0}^' [indent|unindent|comment|listen]'
-}
-
-fn lisusage{
-	echo
-	echo 'export $font and $lfont in your environment'
-	echo
-	echo '  $font=fixed width'
-	echo '  $lfont=variable width'
-	echo
-	echo 'usage: '^`{basename $0}^' <log file>'
-	echo
 }
 
 fn die{
@@ -108,24 +105,19 @@ fn pipe{
 	rm $f
 }
 
-fn clearstate{
-	filename=''
-	savehooks=()
-	comstart=''
-	comend=''
-	tab=''
-	cmd=''
-	state=clean
-}
-
 fn execintag{
+	input=$*
 	gettag
-	len=`{echo $1 | wc -c}
+	len=`{echo -n $input |  wc -c}
 	selbegin=`{echo $tag | wc -c}
 	selend=`{echo $selbegin+$len | bc -l}
-	echo $1 | 9p write acme/$winid/tag
-	echo 'Mx'^$selbegin^' '^$selend | 9p write acme/$winid/event
-	gettag
+	writetag $input 
+	ecmd=`{echo -n Mx$selbegin $selend 0 $len $input}
+	echo -n $ecmd | 9p write acme/$winid/event
+}
+
+fn writetag{
+	echo $* | 9p write acme/$winid/tag
 }
 
 fn cleartag{
@@ -137,6 +129,30 @@ fn gettag{
 	tag=`{9p read acme/$winid/tag}
 }
 
+fn clearstate{
+	# file
+	file=()
+	filename=()
+
+	# filetype
+	savehooks=()
+	comstart=()
+	comend=()
+	tab=()
+	tabexpand=()
+	tabwidth=()
+
+	# event
+	cmd=()
+	tag=()
+	originaltag=()
+	winid=()
+	action=()
+
+	# mark state	
+	state=clean
+}
+
 fn listen{
 
 	logfile=$1
@@ -145,14 +161,7 @@ fn listen{
 	if not
 		touch $logfile
 
-	if(~ $#pfont 0 || ~ $#tfont 0){
-		lisusage
-		die 'logfile, font, or lfont is not available in the environment'
-	}
-
 	echo log file: $logfile
-	echo primary font: $pfont >> $logfile
-	echo terminal font: $tfont >> $logfile
 	echo dynamic font enabled: $DYNAMIC_FONT >> $logfile
 
 	9p read acme/log | while(event=`{read}){
@@ -181,25 +190,33 @@ fn listen{
 				clearstate
 
 		case new
-			tag=`{9p read acme/$winid/tag}
+			gettag
 			originaltag=`{echo $tag | sed 's/.*\|//'}
+
 			if(~ $DYNAMIC_FONT 1){
 				switch($tag){
 				case */-*
-					# terminal
-					execintag 'Font '^$tfont
-					cleartag
-				case *
-					# normal window
-					execintag 'Font '^$pfont
-					cleartag
+					execintag Font
 				}
 			}
+
+			if(~ $HAS_EDWOOD 1){
+				filename=$file
+				filetype
+				echo $#tabexpand $#tabwidth
+				if(! ~ $#tabexpand 0 && ! ~ $#tabwidth 0){
+					execintag 'Tab '^$tabwidth
+					execintag 'Tabexpand'
+				}
+			}
+			cleartag
+
 			if(! ~ $#originaltag 0)
-				echo ' '^$originaltag | 9p write acme/$winid/tag
+				echo ' '^$originaltag | 9p write acme/$winid/tag 
 			if(! ~ $tag *+Errors* && ! ~ $tag */-*)
 				echo -n $MENU | 9p write acme/$winid/tag
 
+			clearstate
 		}
 	}
 }
@@ -222,6 +239,10 @@ case *
 			pipe COMMENT
 		case listen
 			listen $2
+		case tagexec
+			shift
+			tag=`{9p read acme/$winid/tag}
+			execintag $*
 		case *
 			die `{usage}
 		}
