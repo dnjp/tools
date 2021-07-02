@@ -1,0 +1,246 @@
+#!/usr/bin/env rc
+
+###########################
+#         Options
+
+# Sets font to proportional width font for text buffers and
+# a fixed width font for win/terminal buffers
+DYNAMIC_FONT=1
+
+# Edwood has some features Acme does not. Set to 1 if you
+# are using Edwood.
+HAS_EDWOOD=1
+
+# These menu items will be set in the tag on every new window
+MENU='|a-  |a+  |com'
+
+fn filetype{
+	switch($filename){
+	case *.java *.js *.ts
+		comstart='// '
+		tab='  '
+		tabwidth=2
+		tabexpand=1
+	case *.go
+		comstart='// '
+		tab='	'
+		savehooks=('gofmt $NAME')
+	case *.tf *.yaml *.yml
+		comstart='# '
+		tab='  '
+		tabwidth=2
+		tabexpand=1
+	case *.c *.h
+		comstart='/\* '
+		comend=' \*/'
+		tab='	'
+	case *
+		comstart='# '
+		tab='	'
+	}
+}
+
+###########################
+
+fn usage{
+  echo `{basename $0}^' [indent|unindent|comment|listen]'
+}
+
+fn die{
+	>[1=2] echo $0: $*
+	exit $"*
+}
+
+fn chomp{
+	# trim trailing newline if the input did not have one
+	hasnl=`{tail -c 1 $f}
+	if(! ~ $#hasnl 0)
+		awk '
+		{ prev_line = line; line = $0; }
+		NR > 1 { print prev_line; }
+		END { ORS = ""; print line; }
+		'
+	if not
+		cat
+}
+
+fn pipe{
+	action=$1
+ 	if (~ $#% 0)
+		die 'this only works in acme'
+
+	f=/tmp/buf.$pid
+	cat /dev/stdin >$f
+
+	cat $f | {
+		switch($action){
+		case COMMENT
+			comlines=`{{ cat $f | grep $comstart | wc -l }};
+			noncomlines=`{{ cat $f | grep -v $comstart | wc -l}};
+			if(test $comlines -gt $noncomlines){
+				# uncomment
+				if(! ~ $#comend 0){
+					sed 's|'^$comstart^'||';
+					sed 's|'^$comend^'||';
+				}
+				if not
+					sed 's|'^$comstart^'||';
+			}
+			if not{
+				# comment
+				if(! ~ $#comend 0){
+					sed 's|^[ 	]+|&'^$comstart^'|';
+					sed 's|$|'^$comend^'|';
+				}
+				# TODO: fix ending comment within delimeters { }
+				if not
+					sed 's|^[ 	]+|&'^$comstart^'|';
+			}
+		case INDENT
+			sed 's/^.+/'^$tab^'&/';
+		case UNINDENT
+			sed 's/^'^$tab^'//';
+		}
+	} | chomp
+	rm $f
+}
+
+fn execintag{
+	input=$*
+	gettag
+	len=`{echo -n $input |  wc -c}
+	selbegin=`{echo $tag | wc -c}
+	selend=`{echo $selbegin+$len | bc -l}
+	writetag $input 
+	ecmd=`{echo -n Mx$selbegin $selend 0 $len $input}
+	echo -n $ecmd | 9p write acme/$winid/event
+}
+
+fn writetag{
+	echo $* | 9p write acme/$winid/tag
+}
+
+fn cleartag{
+	echo -n cleartag | 9p write acme/$winid/ctl
+	gettag
+}
+
+fn gettag{
+	tag=`{9p read acme/$winid/tag}
+}
+
+fn clearstate{
+	# file
+	file=()
+	filename=()
+
+	# filetype
+	savehooks=()
+	comstart=()
+	comend=()
+	tab=()
+	tabexpand=()
+	tabwidth=()
+
+	# event
+	cmd=()
+	tag=()
+	originaltag=()
+	winid=()
+	action=()
+
+	# mark state	
+	state=clean
+}
+
+fn listen{
+
+	logfile=$1
+	if(~ $#logfile 0)
+		logfile=/dev/stdout
+	if not
+		touch $logfile
+
+	echo log file: $logfile
+	echo dynamic font enabled: $DYNAMIC_FONT >> $logfile
+
+	9p read acme/log | while(event=`{read}){
+
+		winid=`{echo $event | awk '{print $1}'}
+		action=`{echo $event | awk '{print $2}'}
+		file=`{echo $event | awk '{print $3}'}
+
+		switch($action){
+		case put
+			filename=$file
+			filetype
+			if(! ~ $#savehooks 0 && ! ~ $state dirty){
+				filename=$file
+				filetype
+				for(hook in $savehooks){
+					cmd=`{echo $hook | sed 's|\$NAME|'^$filename^'|g'}
+					echo -n , | 9p write acme/$winid/addr
+					echo 'dot=addr' | 9p rdwr acme/$winid/ctl
+					$cmd | 9p write acme/$winid/data
+				}
+				echo -n 'put' | 9p write acme/$winid/ctl
+				state=dirty
+			}
+			if not
+				clearstate
+
+		case new
+			gettag
+			originaltag=`{echo $tag | sed 's/.*\|//'}
+
+			if(~ $DYNAMIC_FONT 1){
+				switch($tag){
+				case */-*
+					execintag Font
+				}
+			}
+
+			if(~ $HAS_EDWOOD 1){
+				filename=$file
+				filetype
+				echo $#tabexpand $#tabwidth
+				if(! ~ $#tabexpand 0 && ! ~ $#tabwidth 0){
+					execintag 'Tab '^$tabwidth
+					execintag 'Tabexpand'
+				}
+			}
+			cleartag
+
+			if(! ~ $#originaltag 0)
+				writetag ' '^$originaltag
+			if(! ~ $tag *+Errors* && ! ~ $tag */-*)
+				writetag $MENU 
+
+			clearstate
+		}
+	}
+}
+
+switch ($#*){
+case 0
+	die `{usage}
+case *
+	if(~ $1 listen)
+		listen $2
+	if not{
+		filename=$%
+		filetype
+		switch ($1){
+		case indent
+			pipe INDENT
+		case unindent
+			pipe UNINDENT
+		case comment
+			pipe COMMENT
+		case listen
+			listen $2
+		case *
+			die `{usage}
+		}
+	}
+}
