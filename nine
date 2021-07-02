@@ -12,7 +12,7 @@ DYNAMIC_FONT=1
 HAS_EDWOOD=1
 
 # These menu items will be set in the tag on every new window
-MENU='|a-  |a+  |com'
+MENU='|a-  |a+  |com |fmt |f+ |f-'
 
 fn filetype{
 	switch($filename){
@@ -43,7 +43,7 @@ fn filetype{
 ###########################
 
 fn usage{
-  echo `{basename $0}^' [indent|unindent|comment|listen]'
+	echo `{basename $0}^' [indent|unindent|comment|listen|font]'
 }
 
 fn die{
@@ -221,6 +221,23 @@ fn listen{
 	}
 }
 
+fn setfiletype{
+	filename=$%
+	if(~ $#filename 0)
+		filename=$samfile
+	if(~ $#filename 0)
+		die 'can only be used with sam or acme'		
+	filetype
+}
+
+fn getwinfont{
+	9p read acme/$winid/ctl | awk '{print $7}'
+}
+
+fn getnums {
+	sed 's/[^0-9]*//g' 
+}
+
 switch ($#*){
 case 0
 	die `{usage}
@@ -228,17 +245,39 @@ case *
 	if(~ $1 listen)
 		listen $2
 	if not{
-		filename=$%
-		filetype
 		switch ($1){
 		case indent
+			setfiletype
 			pipe INDENT
 		case unindent
+			setfiletype
 			pipe UNINDENT
 		case comment
+			setfiletype
 			pipe COMMENT
 		case listen
+			setfiletype
 			listen $2
+		case font
+			shift
+			if(~ $#1 0)
+				die 'must specify "increase" or "decrease"'
+			if(~ $#% 0 || ~ $#winid 0)
+				die 'only can be used in acme'
+			switch($1){
+			case increase
+				wfont=`{getwinfont}
+				cfs=`{echo $wfont | getnums}
+				nfs=`{echo ('scale=0;' $cfs '/ 2 + 1') | bc -l}
+				nf=`{echo $wfont | sed 's/'^$cfs^'/'^$nfs^'/g'}
+				echo -n font $nf | 9p write acme/$winid/ctl
+			case decrease
+				wfont=`{getwinfont}
+				cfs=`{echo $wfont | getnums}
+				nfs=`{echo ('scale=0;' $cfs '/ 2 - 1') | bc -l}
+				nf=`{echo $wfont | sed 's/'^$cfs^'/'^$nfs^'/g'}
+				echo -n font $nf | 9p write acme/$winid/ctl
+			}
 		case *
 			die `{usage}
 		}
