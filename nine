@@ -239,10 +239,6 @@ case *
 			pipe COMMENT
 		case listen
 			listen $2
-		case tagexec
-			shift
-			tag=`{9p read acme/$winid/tag}
-			execintag $*
 		case *
 			die `{usage}
 		}
