@@ -212,9 +212,9 @@ fn listen{
 			cleartag
 
 			if(! ~ $#originaltag 0)
-				echo ' '^$originaltag | 9p write acme/$winid/tag 
+				writetag ' '^$originaltag
 			if(! ~ $tag *+Errors* && ! ~ $tag */-*)
-				echo -n $MENU | 9p write acme/$winid/tag
+				writetag $MENU 
 
 			clearstate
 		}
