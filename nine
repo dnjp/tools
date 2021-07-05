@@ -66,8 +66,8 @@ fn chomp{
 
 fn pipe{
 	action=$1
- 	if (~ $#% 0)
-		die 'this only works in acme'
+ 	if (~ $#% 0 && ~ $#samfile 0)
+		die 'this only works in acme or sam'
 
 	f=/tmp/buf.$pid
 	cat /dev/stdin >$f
@@ -75,9 +75,11 @@ fn pipe{
 	cat $f | {
 		switch($action){
 		case COMMENT
-			comlines=`{{ cat $f | grep $comstart | wc -l }};
-			noncomlines=`{{ cat $f | grep -v $comstart | wc -l}};
-			if(test $comlines -gt $noncomlines){
+			tlines=`{{ cat $f | wc -l }}
+			comlines=`{{ cat $f | grep -c $comstart }};
+			threshold=`{echo ('scale=0;' $tlines '/2') | bc -l}
+
+			if(test $comlines -gt $threshold){
 				# uncomment
 				if(! ~ $#comend 0){
 					sed 's|'^$comstart^'||';
@@ -94,8 +96,9 @@ fn pipe{
 				}
 				# TODO: fix ending comment within delimeters { }
 				if not
-					sed 's|^[ 	]+|&'^$comstart^'|';
+					sed 's,([ 	]+)|(^+),&'^$comstart^',';			
 			}
+
 		case INDENT
 			sed 's/^.+/'^$tab^'&/';
 		case UNINDENT
