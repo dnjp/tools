@@ -13,7 +13,7 @@ HAS_EDWOOD=1
 
 # These menu items will be set in the tag on every new window
 MENU='|a-  |a+  |com |fmt |f+ |f-'
-
+MAXTAB=8
 fn filetype{
 	switch($filename){
 	case *.java *.js *.ts
@@ -273,6 +273,15 @@ case *
 		case listen
 			setfiletype
 			listen $2
+		case filetype
+			setfiletype
+			if(! ~ $#tabwidth 0)
+				echo z $tabwidth
+			if not{
+				echo z $MAXTAB
+			}
+			if(! ~ $#tabexpand 0 && ~ $tabexpand 1)
+				echo Z
 		case font
 			shift
 			if(~ $#1 0)
