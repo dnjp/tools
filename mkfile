@@ -7,5 +7,6 @@ install:
 	cp ./com $installdir
 	cp ./f+ $installdir
 	cp ./f- $installdir
+	cp ./xfmt $installdir
 
 
