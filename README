@@ -11,3 +11,7 @@ mkicon    create icns from png
 nine      driver for interacting with sam and acme
 wtc       simple "watch" command
 xfmt      execute formatting commands that do not operate on stdin/stdout
+
+Installation
+
+mk bindir=/your/favorite/dir install
