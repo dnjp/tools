@@ -1,0 +1,37 @@
+#!/usr/bin/env rc
+
+fn usage{
+	echo `{basename $0} '[ -n interval sec ] cmd...'
+}
+
+if(~ $#* 0) {
+	usage
+	exit 1
+}
+
+cmd=()
+n=2
+while(! ~ $#1 0){
+	switch($1){
+	case -n
+		shift
+		n = $1
+		shift
+	case *
+		cmd=($cmd $1)
+		shift
+	}
+}
+
+if(~ $#cmd 0) {
+	usage
+	exit 1
+}
+
+echo 'running "'^$"cmd^'" every '^$n^' seconds'
+
+while(){
+	eval $cmd
+	echo ' --- '
+	sleep $n
+}
