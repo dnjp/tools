@@ -8,5 +8,6 @@ install:
 	cp ./f+ $installdir
 	cp ./f- $installdir
 	cp ./xfmt $installdir
+	cp ./mkicon $installdir
 
 
