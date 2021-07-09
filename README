@@ -1,0 +1,13 @@
+Tools
+
+f2b       print a comma delimited list of bytes for a file
+a+        indent selection
+a-        unindent selection
+com       un/comment selection
+f+        increase font size
+f-        decrease font size
+fd        find directories
+mkicon    create icns from png
+nine      driver for interacting with sam and acme
+wtc       simple "watch" command
+xfmt      execute formatting commands that do not operate on stdin/stdout
