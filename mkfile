@@ -11,6 +11,7 @@ install:
 	cp ./xfmt $bindir
 	cp ./mkicon $bindir
 	cp ./wtc $bindir
+	cp ./fd $bindir
 	go install f2b/f2b.go 
 
 
