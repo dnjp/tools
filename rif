@@ -1,0 +1,25 @@
+#!/bin/rc
+
+ignore='\.git'
+
+fn usage{
+	echo `{basename $0} ' pattern replacement'
+}
+
+if(~ $#1 0 || ~ $#2 0){
+	usage
+	exit 1
+}
+
+files=`{ grep -l  $1 `{ du -a ./ | grep -v $ignore | awk '{print $2}'  } }
+if(~ $#files 0){
+	echo 'no files matching pattern'
+	exit 1
+}
+
+for(f in $files){
+	tfile='/tmp/'^`{basename $f}^'.'^$pid
+	sed 's|'^$1^'|'^$2^'|g' $f >> $tfile
+	mv $tfile $f
+}
+
