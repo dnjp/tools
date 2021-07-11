@@ -1,4 +1,4 @@
-#!/usr/bin/env rc
+#!/bin/rc
 
 fn usage{
 	echo `{basename $0} '[ -n interval sec ] cmd...'

@@ -1,17 +1,22 @@
 
+RC=nine \
+	a+ \
+	a- \
+	com \
+	f+ \
+	f- \
+	xfmt \
+	mkicon \
+	wtc \
+	fd \
+	rif \
+	rg
+
 # override like: mk bindir=/my/dir install
 bindir=$home/bin/rc
 install:
-	cp ./nine $bindir
-	cp ./a+ $bindir
-	cp ./a- $bindir
-	cp ./com $bindir
-	cp ./f+ $bindir
-	cp ./f- $bindir
-	cp ./xfmt $bindir
-	cp ./mkicon $bindir
-	cp ./wtc $bindir
-	cp ./fd $bindir
+	for(i in $RC){
+		cp $i $bindir
+		chmod +x $bindir/$i
+	}
 	go install f2b/f2b.go 
-
-
