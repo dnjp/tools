@@ -1,4 +1,4 @@
-#!/usr/bin/env rc
+#!/bin/rc
 
 ###########################
 #         Options
@@ -68,14 +68,16 @@ fn chomp{
 		cat
 }
 
+fn rstdin{
+
+}
+
 fn pipe{
 	action=$1
  	if (~ $#% 0 && ~ $#samfile 0)
 		die 'this only works in acme or sam'
-
 	f=/tmp/buf.$pid
-	cat /dev/stdin >$f
-
+	while(read >> $f)
 	cat $f | {
 		switch($action){
 		case COMMENT
@@ -104,9 +106,9 @@ fn pipe{
 			}
 
 		case INDENT
-			sed 's/^.+/'^$tab^'&/';
+			sed 's/^/'^$tab^'/';
 		case UNINDENT
-			sed 's/^'^$tab^'//';
+			sed 's/^'^$tab^'?//';
 		}
 	} | chomp
 	rm $f

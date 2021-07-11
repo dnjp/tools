@@ -1,4 +1,4 @@
-#!/usr/bin/env rc
+#!/bin/rc
 
 baseimg=$1
 name=$2
