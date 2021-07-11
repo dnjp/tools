@@ -11,7 +11,7 @@ if(~ $#1 0 || ~ $#2 0){
 	exit 1
 }
 
-files=`{ grep -l  $1 `{ du -a ./ | grep -v $ignore | awk '{print $2}'  } }
+files=`{ grep -l  $1 `{ walk | grep -v $ignore | grep -v '\.$' } }
 if(~ $#files 0){
 	echo 'no files matching pattern'
 	exit 1
