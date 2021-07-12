@@ -11,4 +11,4 @@ if(~ $#1 0){
 	exit 1
 }
 
-grep $1 `{ du -a ./ | grep -v $ignore | awk '{print $2}'  }
+grep -n $1 `{ walk | grep -v $ignore }

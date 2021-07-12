@@ -1,5 +1,5 @@
 
-RCPATH=/usr/local/plan9/bin/rc
+RCPATH=/bin/rc
 MKSHELL=$RCPATH
 
 RC=nine \
