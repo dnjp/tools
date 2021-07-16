@@ -42,6 +42,10 @@ fn filetype{
 
 ###########################
 
+nl='
+'
+ifs=$nl
+
 fn usage{
 	echo `{basename $0}^' [indent|unindent|comment|listen|font]'
 }
@@ -56,33 +60,35 @@ fn die{
 ####################################################
 
 fn chomp{
-	# trim trailing newline if the input did not have one
-	hasnl=`{tail -c 1 $f}
-	if(! ~ $#hasnl 0)
-		awk '
-		{ prev_line = line; line = $0; }
-		NR > 1 { print prev_line; }
-		END { ORS = ""; print line; }
-		'
-	if not
-		cat
-}
-
-fn rstdin{
-
+	# trim trailing newline
+	awk '
+	{ prev_line = line; line = $0; }
+	NR > 1 { print prev_line; }
+	END { ORS = ""; print line; }
+	'
 }
 
 fn pipe{
 	action=$1
  	if (~ $#% 0 && ~ $#samfile 0)
-		die 'this only works in acme or sam'
+		die this only works in acme or sam
 	f=/tmp/buf.$pid
-	while(read >> $f)
-	cat $f | {
+	lines=''
+	while(l=`{read}){
+		if(~ $#l 0)
+			l=$nl
+		if not
+			l=$l^$nl
+		if(~ $#lines 0)
+			lines=$l
+		if not
+			lines=$lines^$l
+	}
+	echo $lines | {
 		switch($action){
 		case COMMENT
-			tlines=`{{ cat $f | wc -l }}
-			comlines=`{{ cat $f | grep -c $comstart }};
+			tlines=`{{ echo $lines | wc -l }}
+			comlines=`{{ echo $lines | grep -c $comstart }};
 			threshold=`{echo ('scale=0;' $tlines '/2') | bc -l}
 
 			if(test $comlines -gt $threshold){
@@ -100,18 +106,15 @@ fn pipe{
 					sed 's|^[ 	]+|&'^$comstart^'|';
 					sed 's|$|'^$comend^'|';
 				}
-				# TODO: fix ending comment within delimeters { }
 				if not
 					sed 's,([ 	]+)|(^+),&'^$comstart^',';			
 			}
-
 		case INDENT
 			sed 's/^/'^$tab^'/';
 		case UNINDENT
 			sed 's/^'^$tab^'?//';
 		}
-	} | chomp
-	rm $f
+	} | awk 'NR>1{print buf}{buf = $0}'
 }
 
 ####################################################
@@ -167,7 +170,6 @@ fn clearstate{
 }
 
 fn listen{
-
 	logfile=$1
 	if(~ $#logfile 0)
 		logfile=/dev/stdout
