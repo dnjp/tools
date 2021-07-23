@@ -1,5 +1,9 @@
 #!/bin/rc
 
+# always use 9 tools
+if(! ~ $#PLAN9 0)
+	path=($PLAN9/bin $path)
+
 ###########################
 #         Options
 
@@ -72,7 +76,6 @@ fn pipe{
 	action=$1
  	if (~ $#% 0 && ~ $#samfile 0)
 		die this only works in acme or sam
-	f=/tmp/buf.$pid
 	lines=''
 	while(l=`{read}){
 		if(~ $#l 0)
@@ -107,7 +110,7 @@ fn pipe{
 					sed 's|$|'^$comend^'|';
 				}
 				if not
-					sed 's,([ 	]+)|(^+),&'^$comstart^',';			
+					sed 's,([ 	]+)|(^+),&'^$comstart^',';
 			}
 		case INDENT
 			sed 's/^/'^$tab^'/';
@@ -127,7 +130,7 @@ fn execintag{
 	len=`{echo -n $input |  wc -c}
 	selbegin=`{echo $tag | wc -c}
 	selend=`{echo $selbegin+$len | bc -l}
-	writetag $input 
+	writetag $input
 	ecmd=`{echo -n Mx$selbegin $selend 0 $len $input}
 	echo -n $ecmd | 9p write acme/$winid/event
 }
@@ -165,7 +168,7 @@ fn clearstate{
 	winid=()
 	action=()
 
-	# mark state	
+	# mark state
 	state=clean
 }
 
@@ -229,7 +232,7 @@ fn listen{
 			if(! ~ $#originaltag 0)
 				writetag ' '^$originaltag
 			if(! ~ $tag *+Errors* && ! ~ $tag */-*)
-				writetag $MENU 
+				writetag $MENU
 
 			clearstate
 		}
@@ -245,7 +248,7 @@ fn setfiletype{
 	if(~ $#filename 0)
 		filename=$samfile
 	if(~ $#filename 0)
-		die 'can only be used with sam or acme'		
+		die 'can only be used with sam or acme'
 	filetype
 }
 
@@ -254,7 +257,7 @@ fn getwinfont{
 }
 
 fn getnums {
-	sed 's/[^0-9]*//g' 
+	sed 's/[^0-9]*//g'
 }
 
 switch ($#*){
