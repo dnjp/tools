@@ -127,16 +127,17 @@ fn pipe{
 fn execintag{
 	input=$*
 	gettag
-	len=`{echo -n $input |  wc -c}
-	selbegin=`{echo $tag | wc -c}
+	len=`{echo -n $input |  wc -c | awk '{print $1}'}
+	selbegin=`{echo -n $tag | wc -c | awk '{print $1}'}
 	selend=`{echo $selbegin+$len | bc -l}
-	writetag $input
-	ecmd=`{echo -n Mx$selbegin $selend 0 $len $input}
-	echo -n $ecmd | 9p write acme/$winid/event
+	echo -n $input | writetag
+	# ecmd=`{echo -n Mx$selbegin $selend 0 $len $input}
+	ecmd=`{echo -n Mx$selbegin $selend}
+	echo $ecmd | 9p write acme/$winid/event
 }
 
 fn writetag{
-	echo $* | 9p write acme/$winid/tag
+	9p write acme/$winid/tag
 }
 
 fn cleartag{
@@ -218,21 +219,23 @@ fn listen{
 				}
 			}
 
-			if(~ $HAS_EDWOOD 1){
-				filename=$file
-				filetype
-				echo $#tabexpand $#tabwidth
-				if(! ~ $#tabexpand 0 && ! ~ $#tabwidth 0){
-					execintag 'Tab '^$tabwidth
-					execintag 'Tabexpand'
-				}
-			}
+			# if(~ $HAS_EDWOOD 1){
+				# filename=$file
+				# filetype
+				# echo $#tabexpand $#tabwidth
+				# if(! ~ $#tabexpand 0 && ! ~ $#tabwidth 0){
+					# execintag 'Tab '^$tabwidth
+					# execintag 'Tabexpand'
+				# }
+			# }
+
 			cleartag
 
 			if(! ~ $#originaltag 0)
-				writetag ' '^$originaltag
+				echo $originaltag | writetag
+
 			if(! ~ $tag *+Errors* && ! ~ $tag */-*)
-				writetag $MENU
+				echo -n $MENU | writetag
 
 			clearstate
 		}
