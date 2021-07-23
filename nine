@@ -302,16 +302,21 @@ case *
 			case increase
 				wfont=`{getwinfont}
 				cfs=`{echo $wfont | getnums}
-				nfs=`{echo ('scale=0;' $cfs '/ 2 + 1') | bc -l}
+				nfs=`{echo ('scale=0;' $cfs ' + 1') | bc -l}
 				nf=`{echo $wfont | sed 's/'^$cfs^'/'^$nfs^'/g'}
-				echo -n font $nf | 9p write acme/$winid/ctl
+				echo font $nf | 9p write acme/$winid/ctl
 			case decrease
 				wfont=`{getwinfont}
 				cfs=`{echo $wfont | getnums}
-				nfs=`{echo ('scale=0;' $cfs '/ 2 - 1') | bc -l}
+				nfs=`{echo ('scale=0;' $cfs '- 1') | bc -l}
 				nf=`{echo $wfont | sed 's/'^$cfs^'/'^$nfs^'/g'}
-				echo -n font $nf | 9p write acme/$winid/ctl
+				echo font $nf | 9p write acme/$winid/ctl
 			}
+		case kill
+			reader=`{ps -a | grep 'read acme' | head -n 1 | awk '{print $2}'}
+			nine=`{ps -a | grep 'read nine' | head -n 1 | awk '{print $2}'}
+			slay $reader | rc
+			slay $nine | rc
 		case *
 			die `{usage}
 		}
