@@ -16,7 +16,7 @@ DYNAMIC_FONT=1
 HAS_EDWOOD=1
 
 # These menu items will be set in the tag on every new window
-MENU='|a-  |a+  |com |fmt |f+ |f-'
+MENU='|a-  |a+  |com  |fmt  (Edit ,|gofmt)  f-  f+'
 MAXTAB=8
 fn filetype{
 	switch($filename){
