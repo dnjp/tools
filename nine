@@ -13,7 +13,7 @@ DYNAMIC_FONT=1
 
 # Edwood has some features Acme does not. Set to 1 if you
 # are using Edwood.
-HAS_EDWOOD=1
+HAS_EDWOOD=0
 
 # These menu items will be set in the tag on every new window
 MENU='|a-  |a+  |com  |fmt  (Edit ,|gofmt)  f-  f+'
@@ -302,13 +302,15 @@ case *
 			case increase
 				wfont=`{getwinfont}
 				cfs=`{echo $wfont | getnums}
-				nfs=`{echo ('scale=0;' $cfs ' + 1') | bc -l}
+				nfs=`{echo ('scale=0;' $cfs ' + 2') | bc }
+				nfs=`{echo ($nfs ' / 2') | bc }
 				nf=`{echo $wfont | sed 's/'^$cfs^'/'^$nfs^'/g'}
 				echo font $nf | 9p write acme/$winid/ctl
 			case decrease
 				wfont=`{getwinfont}
 				cfs=`{echo $wfont | getnums}
-				nfs=`{echo ('scale=0;' $cfs '- 1') | bc -l}
+				nfs=`{echo ('scale=0;' $cfs '- 2') | bc }
+				nfs=`{echo ($nfs ' / 2') | bc }
 				nf=`{echo $wfont | sed 's/'^$cfs^'/'^$nfs^'/g'}
 				echo font $nf | 9p write acme/$winid/ctl
 			}

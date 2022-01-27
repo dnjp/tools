@@ -1,8 +1,7 @@
 
 RCPATH=/usr/local/plan9/bin/rc
-MKSHELL=$RCPATH
 
-RC=nine \
+targets=nine \
 	a+ \
 	a- \
 	com \
@@ -12,14 +11,19 @@ RC=nine \
 	mkicon \
 	wtc \
 	fd \
-	rif \
-	rg
+	rif
+# rg
 
 # override like: mk bindir=/my/dir install
 bindir=$home/bin/rc
-install:
-	for(i in $RC){
+
+MKSHELL=$PLAN9/bin/rc
+install:V:
+	echo MKSHELL=$MKSHELL
+	echo RCPATH=$RCPATH
+	for(i in $targets){
 		cat $i | sed 's|/bin/rc|'^$RCPATH^'|g' > $bindir/$i
-		chmod +x $bindir/$i
+		chmod +x $bindir/$i;
 	}
 	go install f2b/f2b.go 
+
